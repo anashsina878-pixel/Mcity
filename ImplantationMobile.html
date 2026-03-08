@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#004252">
+<title>m city — Implantation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --green: #004252;
+    --green2: #006B52;
+    --accent: #02A74A;
+    --bg: #F0F4F3;
+    --card: #FFFFFF;
+    --text: #1a2e25;
+    --muted: #6B7B74;
+    --radius: 16px;
+    --header: 60px;
+    --bottom: 64px;
+  }
+
+  html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+  /* HEADER */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--header); z-index: 100;
+    background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
+    display: flex; align-items: center; padding: 0 16px; gap: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+  .header-logo { background: white; border-radius: 8px; padding: 4px 7px; line-height: 1; }
+  .header-logo span.m { color: #15803D; font-weight: 900; font-size: 18px; }
+  .header-logo span.city { color: #02A74A; font-size: 10px; font-weight: 700; display: block; margin-top: -3px; }
+  .header-title { color: white; font-size: 15px; font-weight: 700; flex: 1; }
+  .header-sub { color: rgba(255,255,255,0.65); font-size: 11px; }
+
+  /* MODE TOGGLE */
+  .mode-toggle {
+    display: flex; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 3px; gap: 2px;
+  }
+  .mode-btn {
+    border: none; border-radius: 16px; padding: 5px 10px; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; color: rgba(255,255,255,0.8); background: transparent;
+  }
+  .mode-btn.active { background: white; color: var(--green); }
+
+  /* BOTTOM NAV */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom); z-index: 100;
+    background: white; border-top: 1px solid #E5EDE9;
+    display: flex; align-items: center;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; border: none; background: transparent; cursor: pointer; padding: 8px 0;
+    color: var(--muted); font-size: 10px; font-weight: 600; transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-icon { font-size: 20px; }
+
+  /* SCROLL AREA */
+  .scroll-area {
+    position: fixed; top: var(--header); bottom: var(--bottom); left: 0; right: 0;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px;
+  }
+
+  /* BREADCRUMB */
+  .breadcrumb {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 12px;
+    background: white; border-radius: 12px; padding: 10px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .bc-btn { border: none; background: transparent; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
+  .bc-sep { color: #CBD5C8; font-size: 12px; }
+  .bc-current { font-size: 13px; font-weight: 700; color: var(--text); }
+
+  /* FAMILLE CARD */
+  .famille-card {
+    background: var(--card); border-radius: var(--radius); margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden;
+    display: flex; align-items: stretch; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s; active-scale: 0.98;
+  }
+  .famille-card:active { transform: scale(0.98); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .famille-bar { width: 5px; flex-shrink: 0; }
+  .famille-icon-wrap { width: 60px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+  .famille-body { flex: 1; padding: 12px 10px; min-width: 0; }
+  .famille-name { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
+  .famille-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+  .famille-tag { font-size: 10px; background: #F0F4F3; color: var(--muted); padding: 2px 7px; border-radius: 20px; }
+  .famille-count { padding: 12px 14px; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex-shrink: 0; }
+  .famille-count-num { font-size: 22px; font-weight: 900; }
+  .famille-count-label { font-size: 10px; color: var(--muted); }
+  .famille-chevron { color: #CBD5C8; font-size: 16px; align-self: center; padding-right: 8px; }
+
+  /* SOUS-FAMILLE LIST */
+  .sf-card {
+    background: var(--card); border-radius: var(--radius); margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden;
+    display: flex; align-items: center; cursor: pointer; padding: 14px 16px;
+    transition: transform 0.15s;
+  }
+  .sf-card:active { transform: scale(0.98); }
+  .sf-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; margin-right: 12px; }
+  .sf-name { font-size: 14px; font-weight: 700; flex: 1; }
+  .sf-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .sf-badge { font-size: 13px; font-weight: 800; padding: 4px 10px; border-radius: 20px; flex-shrink: 0; margin-right: 8px; }
+  .sf-chevron { color: #CBD5C8; font-size: 16px; }
+
+  /* DETAIL VIEW */
+  .detail-hero {
+    border-radius: var(--radius); padding: 20px; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .detail-hero-icon { font-size: 40px; }
+  .detail-hero-name { font-size: 20px; font-weight: 900; color: white; }
+  .detail-hero-famille { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+  .detail-hero-total { margin-left: auto; text-align: right; }
+  .detail-hero-total-num { font-size: 36px; font-weight: 900; color: white; line-height: 1; }
+  .detail-hero-total-label { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+  /* ÉTAGE ROWS */
+  .etage-list { background: white; border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .etage-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #F0F4F3; gap: 12px; }
+  .etage-row:last-child { border-bottom: none; }
+  .etage-row.inactive { opacity: 0.4; }
+  .etage-label { font-size: 12px; font-weight: 700; color: var(--muted); width: 70px; flex-shrink: 0; }
+  .etage-bar-wrap { flex: 1; height: 8px; background: #F0F4F3; border-radius: 4px; overflow: hidden; }
+  .etage-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .etage-val { font-size: 16px; font-weight: 900; width: 30px; text-align: right; flex-shrink: 0; }
+  .etage-status { width: 52px; flex-shrink: 0; }
+  .badge-actif { background: #DCFCE7; color: #15803D; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 20px; white-space: nowrap; }
+  .badge-vide { background: #F0F4F3; color: #9CA3AF; font-size: 10px; padding: 3px 7px; border-radius: 20px; }
+
+  /* PLANOGRAMME */
+  .plano-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .plano-table { border-collapse: collapse; width: 100%; min-width: 480px; font-size: 11px; background: white; }
+  .plano-table th { background: var(--green); color: white; padding: 10px 8px; text-align: center; font-weight: 700; white-space: nowrap; }
+  .plano-table th:first-child, .plano-table th:nth-child(2) { text-align: left; }
+  .plano-table td { padding: 8px; border-bottom: 1px solid #F0F4F3; }
+  .plano-table tr:last-child td { border-bottom: none; }
+  .plano-table tr:hover { background: #F8FAF9; }
+  .plano-cell { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 20px; border-radius: 6px; font-weight: 800; font-size: 11px; }
+  .plano-famille-cell { font-weight: 800; font-size: 11px; text-align: center; border-left: 4px solid; }
+  .plano-total-row td { background: var(--green); color: white; font-weight: 800; }
+
+  /* CLIENT VIEW */
+  .client-intro { background: white; border-radius: var(--radius); padding: 18px; margin-bottom: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .client-intro-icon { font-size: 36px; margin-bottom: 8px; }
+  .client-intro-title { font-size: 17px; font-weight: 800; color: var(--text); }
+  .client-intro-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .shelf-visual { background: white; border-radius: var(--radius); overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 12px; }
+  .shelf-row { display: flex; align-items: center; padding: 11px 14px; border-bottom: 1px solid #F0F4F3; gap: 10px; }
+  .shelf-row:last-child { border-bottom: none; }
+  .shelf-row.principal { border-left: 4px solid; }
+  .shelf-row.disponible { border-left: 4px solid transparent; }
+  .shelf-row.vide { opacity: 0.3; }
+  .shelf-etage-name { font-size: 11px; font-weight: 700; color: var(--muted); width: 75px; flex-shrink: 0; }
+  .shelf-bar-wrap { flex: 1; height: 6px; background: #F0F4F3; border-radius: 3px; overflow: hidden; }
+  .shelf-bar-fill { height: 100%; border-radius: 3px; }
+  .shelf-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .shelf-badge.principal { background: var(--accent); color: white; }
+  .shelf-badge.dispo { background: #DCFCE7; color: #15803D; }
+
+  .client-summary { border-radius: var(--radius); padding: 16px; text-align: center; margin-bottom: 12px; }
+  .client-summary-num { font-size: 40px; font-weight: 900; line-height: 1; }
+  .client-summary-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* STATS BANNER */
+  .stats-banner { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-card { background: white; border-radius: 12px; padding: 12px 10px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-top: 3px solid; }
+  .stat-num { font-size: 22px; font-weight: 900; }
+  .stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* CLIENT MODE BANNER */
+  .client-banner { background: #DCFCE7; border-bottom: 1px solid #BBF7D0; padding: 7px 16px; text-align: center; }
+  .client-banner span { color: #15803D; font-size: 11px; font-weight: 700; }
+
+  /* Section title */
+  .section-title { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; padding-left: 2px; }
+
+  /* ANIMATIONS */
+  @keyframes slideUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform:none; } }
+  .animate { animation: slideUp 0.25s ease forwards; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">
+    <span class="m">m</span>
+    <span class="city">city</span>
+  </div>
+  <div style="flex:1">
+    <div class="header-title" id="headerTitle">Implantation</div>
+    <div class="header-sub" id="headerSub">Familles · Facings</div>
+  </div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btnEmploye" onclick="setMode('employe')">👔</button>
+    <button class="mode-btn" id="btnClient" onclick="setMode('client')">🛒</button>
+  </div>
+</div>
+
+<!-- CLIENT BANNER -->
+<div class="client-banner hidden" id="clientBanner">
+  <span>🛒 Mode Client — Vue simplifiée</span>
+</div>
+
+<!-- SCROLL AREA -->
+<div class="scroll-area" id="scrollArea">
+  <div id="appContent"></div>
+</div>
+
+<!-- BOTTOM NAV (employé only) -->
+<div class="bottom-nav" id="bottomNav">
+  <button class="nav-btn active" id="navFamilles" onclick="navTo('familles')">
+    <span class="nav-icon">🗂</span>Familles
+  </button>
+  <button class="nav-btn" id="navPlano" onclick="navTo('planogramme')">
+    <span class="nav-icon">📊</span>Planogramme
+  </button>
+</div>
+
+<script>
+// ── DONNÉES ──────────────────────────────────────────────────────────
+const FAMILLES = [
+  { id:1, nom:"BOISSONS", icon:"💧", couleur:"#0369A1", clair:"#E0F2FE",
+    sousFamilles:[
+      { nom:"Eaux", etages:{"1-2":13,"2-3":11,"3-4":11,"4-5":10,"5-6":7,"6-7":null,"7-8":null} },
+    ]},
+  { id:2, nom:"SNACKING & BISCUITS", icon:"🍪", couleur:"#B45309", clair:"#FEF3C7",
+    sousFamilles:[
+      { nom:"Chips",           etages:{"1-2":7, "2-3":7, "3-4":8, "4-5":8, "5-6":8, "6-7":8,  "7-8":null} },
+      { nom:"Biscuits",        etages:{"1-2":6, "2-3":6, "3-4":6, "4-5":6, "5-6":8, "6-7":8,  "7-8":null} },
+      { nom:"Aide Pâtisserie", etages:{"1-2":6, "2-3":6, "3-4":6, "4-5":6, "5-6":6, "6-7":5,  "7-8":5}   },
+      { nom:"Confiserie",  etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Café",        etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Confiture",   etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Miel",        etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Céréales",    etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"BDC",         etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Panif",       etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+    ]},
+  { id:3, nom:"HYGIÈNE & BEAUTÉ", icon:"🧴", couleur:"#7C3AED", clair:"#EDE9FE",
+    sousFamilles:[
+      { nom:"Papier Hygiénique",  etages:{"1-2":13,"2-3":15,"3-4":15,"4-5":16,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Couches",            etages:{"1-2":13,"2-3":15,"3-4":15,"4-5":8, "5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Bucco-Dentaire",     etages:{"1-2":5, "2-3":5, "3-4":5, "4-5":5, "5-6":5,   "6-7":5,   "7-8":null} },
+      { nom:"Soin Corps",         etages:{"1-2":6, "2-3":5, "3-4":5, "4-5":5, "5-6":5,   "6-7":6,   "7-8":6}   },
+      { nom:"Déodorant",          etages:{"1-2":10,"2-3":8, "3-4":8, "4-5":8, "5-6":5,   "6-7":5,   "7-8":5}   },
+      { nom:"Bébé",               etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Savon",              etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Shampoing/Coloration",etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+    ]},
+  { id:4, nom:"ÉPICERIE SÈCHE", icon:"🌾", couleur:"#15803D", clair:"#DCFCE7",
+    sousFamilles:[
+      { nom:"Emballage",            etages:{"1-2":4, "2-3":5, "3-4":5,"4-5":5,"5-6":5,"6-7":5,"7-8":5} },
+      { nom:"Farine",               etages:{"1-2":12,"2-3":12,"3-4":8,"4-5":8,"5-6":5,"6-7":5,"7-8":null} },
+      { nom:"Sucre",                etages:{"1-2":11,"2-3":8, "3-4":7,"4-5":7,"5-6":7,"6-7":4,"7-8":6} },
+      { nom:"Produits du Monde",    etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Riz Spécifique",       etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Riz/Féculent/Couscous",etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Pâtes Alimentaires",   etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Huiles",               etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Bouillons & Sel",      etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Conserves",            etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Sauces & Condiments",  etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Concentré Tomate",     etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Petit Food",           etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+    ]},
+  { id:5, nom:"BOISSONS CHAUDES", icon:"🍵", couleur:"#B91C1C", clair:"#FEE2E2",
+    sousFamilles:[
+      { nom:"Thé",         etages:{"1-2":6,"2-3":6,"3-4":6,"4-5":6,"5-6":6,"6-7":6,"7-8":6} },
+      { nom:"Infusions",   etages:{"1-2":5,"2-3":5,"3-4":5,"4-5":5,"5-6":5,"6-7":5,"7-8":5} },
+      { nom:"Nido (Lait)", etages:{"1-2":8,"2-3":7,"3-4":5,"4-5":5,"5-6":5,"6-7":6,"7-8":null} },
+    ]},
+  { id:6, nom:"ENTRETIEN", icon:"🧹", couleur:"#0891B2", clair:"#CFFAFE",
+    sousFamilles:[
+      { nom:"Soin Linge",         etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Lessive Liquide",    etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Lessive Poudre",     etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Eau de Javel",       etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"WC & Multi",         etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Droguerie",          etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Essuie Tout",        etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Pâte Lavante",       etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Nettoyant Sol",      etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Nettoyant Vaisselle",etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Mouchoirs",          etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+    ]},
+  { id:7, nom:"BOISSONS FRAÎCHES", icon:"🥤", couleur:"#0284C7", clair:"#BAE6FD",
+    sousFamilles:[
+      { nom:"Jus",                   etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Jus P.F",               etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Soda",                  etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Sirop & Ice Thé",       etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+      { nom:"Boissons Énergétiques", etages:{"1-2":null,"2-3":null,"3-4":null,"4-5":null,"5-6":null,"6-7":null,"7-8":null} },
+    ]},
+];
+
+const ETAGES = ["1-2","2-3","3-4","4-5","5-6","6-7","7-8"];
+const ETAGE_LABELS = {"1-2":"Bas (sol)","2-3":"Bas","3-4":"Milieu bas","4-5":"Milieu","5-6":"Milieu haut","6-7":"Haut","7-8":"Très haut"};
+
+// ── STATE ──────────────────────────────────────────────────────────
+let state = { mode:"employe", vue:"familles", familleId:null, sfNom:null };
+
+function totalFacings(sf) { return Object.values(sf.etages).reduce((s,v)=>s+(v||0),0); }
+function maxFacing(sf) { const vals=Object.values(sf.etages).filter(Boolean); return vals.length?Math.max(...vals):1; }
+function etagesActifs(sf) { return Object.entries(sf.etages).filter(([,v])=>v).map(([k])=>k); }
+
+// ── RENDER ──────────────────────────────────────────────────────────
+function render() {
+  const isClient = state.mode === 'client';
+  // Header
+  document.getElementById('clientBanner').classList.toggle('hidden', !isClient);
+  document.getElementById('bottomNav').classList.toggle('hidden', isClient);
+  document.getElementById('btnEmploye').classList.toggle('active', !isClient);
+  document.getElementById('btnClient').classList.toggle('active', isClient);
+
+  // Adjust scroll area top
+  const scrollArea = document.getElementById('scrollArea');
+  scrollArea.style.top = isClient ? 'calc(var(--header) + 30px)' : 'var(--header)';
+  scrollArea.style.bottom = isClient ? '0' : 'var(--bottom)';
+
+  if (isClient) renderClient();
+  else renderEmploye();
+}
+
+function renderEmploye() {
+  const { vue, familleId, sfNom } = state;
+  const famille = FAMILLES.find(f=>f.id===familleId);
+  const sf = famille?.sousFamilles.find(s=>s.nom===sfNom);
+
+  document.getElementById('headerTitle').textContent = 'Implantation';
+  document.getElementById('headerSub').textContent = 'Familles · Facings par étage';
+  document.getElementById('navFamilles').classList.toggle('active', vue==='familles');
+  document.getElementById('navPlano').classList.toggle('active', vue==='planogramme');
+
+  let html = '';
+
+  if (vue === 'familles' && !familleId) {
+    const totalSF = FAMILLES.reduce((t,f)=>t+f.sousFamilles.length,0);
+    html += `<div class="stats-banner">
+      <div class="stat-card" style="border-color:#0891B2"><div class="stat-num" style="color:#0891B2">🗂 ${FAMILLES.length}</div><div class="stat-label">Familles</div></div>
+      <div class="stat-card" style="border-color:#15803D"><div class="stat-num" style="color:#15803D">📦 ${totalSF}</div><div class="stat-label">Sous-familles</div></div>
+      <div class="stat-card" style="border-color:#7C3AED"><div class="stat-num" style="color:#7C3AED">📐 7</div><div class="stat-label">Étages</div></div>
+    </div>`;
+    html += `<div class="section-title">Choisir une famille</div>`;
+    FAMILLES.forEach(f => {
+      const total = f.sousFamilles.reduce((t,s)=>t+totalFacings(s),0);
+      html += `<div class="famille-card animate" onclick="goFamille(${f.id})">
+        <div class="famille-bar" style="background:${f.couleur}"></div>
+        <div class="famille-icon-wrap" style="background:${f.clair}">${f.icon}</div>
+        <div class="famille-body">
+          <div class="famille-name" style="color:${f.couleur}">${f.nom}</div>
+          <div class="famille-tags">${f.sousFamilles.slice(0,4).map(sf=>`<span class="famille-tag">${sf.nom}</span>`).join('')}${f.sousFamilles.length>4?`<span class="famille-tag">+${f.sousFamilles.length-4}</span>`:''}</div>
+        </div>
+        <div class="famille-count"><div class="famille-count-num" style="color:${f.couleur}">${f.sousFamilles.length}</div><div class="famille-count-label">s-familles</div></div>
+        <div class="famille-chevron">›</div>
+      </div>`;
+    });
+  }
+
+  else if (vue === 'familles' && familleId && !sfNom) {
+    document.getElementById('headerTitle').textContent = famille.nom;
+    html += breadcrumb([{label:'← Familles',action:'goBack()'}], famille.nom);
+    html += `<div class="section-title">Sous-familles</div>`;
+    famille.sousFamilles.forEach(sf => {
+      const tot = totalFacings(sf);
+      const actifs = etagesActifs(sf).length;
+      html += `<div class="sf-card animate" onclick="goSF('${sf.nom.replace(/'/g,"\\'")}')">
+        <div class="sf-icon" style="background:${famille.clair}">${famille.icon}</div>
+        <div style="flex:1"><div class="sf-name">${sf.nom}</div><div class="sf-sub">${actifs} étage${actifs!==1?'s':''} actif${actifs!==1?'s':''}</div></div>
+        ${tot>0?`<span class="sf-badge" style="background:${famille.clair};color:${famille.couleur}">${tot}</span>`:'<span class="sf-badge" style="background:#F0F4F3;color:#9CA3AF">—</span>'}
+        <div class="sf-chevron">›</div>
+      </div>`;
+    });
+  }
+
+  else if (vue === 'familles' && familleId && sfNom && sf) {
+    document.getElementById('headerTitle').textContent = sf.nom;
+    html += breadcrumb([{label:'← Familles',action:'goBack2()'},{label:famille.nom,action:`goFamille(${famille.id})`}], sf.nom);
+    const tot = totalFacings(sf);
+    const max = maxFacing(sf);
+    html += `<div class="detail-hero animate" style="background:linear-gradient(135deg,${famille.couleur} 0%,${famille.couleur}cc 100%)">
+      <div class="detail-hero-icon">${famille.icon}</div>
+      <div><div class="detail-hero-name">${sf.nom}</div><div class="detail-hero-famille">${famille.nom}</div></div>
+      ${tot>0?`<div class="detail-hero-total"><div class="detail-hero-total-num">${tot}</div><div class="detail-hero-total-label">facings</div></div>`:''}
+    </div>`;
+    html += `<div class="etage-list animate">`;
+    ETAGES.forEach((e,i) => {
+      const val = sf.etages[e];
+      const pct = val ? Math.round((val/max)*100) : 0;
+      html += `<div class="etage-row ${!val?'inactive':''}">
+        <div class="etage-label">${ETAGE_LABELS[e]}</div>
+        <div class="etage-bar-wrap"><div class="etage-bar-fill" style="width:${pct}%;background:${famille.couleur}"></div></div>
+        <div class="etage-val" style="color:${val?famille.couleur:'#D1D5DB'}">${val||'—'}</div>
+        <div class="etage-status">${val?`<span class="badge-actif">✓ Actif</span>`:`<span class="badge-vide">Vide</span>`}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  else if (vue === 'planogramme') {
+    document.getElementById('headerTitle').textContent = 'Planogramme';
+    document.getElementById('headerSub').textContent = 'Facings par étage';
+    html += `<div class="section-title">Toutes les sous-familles</div>`;
+    html += `<div class="plano-wrap"><table class="plano-table">
+      <thead><tr><th>Famille</th><th>Sous-famille</th>${ETAGES.map(e=>`<th>É.${e}</th>`).join('')}</tr></thead><tbody>`;
+    FAMILLES.forEach(f => {
+      f.sousFamilles.forEach((sf,si) => {
+        html += `<tr onclick="goSFFromPlano(${f.id},'${sf.nom.replace(/'/g,"\\'")}')">`;
+        if (si===0) html += `<td rowspan="${f.sousFamilles.length}" class="plano-famille-cell" style="background:${f.clair};color:${f.couleur};border-left-color:${f.couleur}">${f.icon}<br>${f.nom}</td>`;
+        html += `<td style="font-weight:600;font-size:12px">${sf.nom}</td>`;
+        ETAGES.forEach(e => {
+          const val = sf.etages[e];
+          html += `<td style="text-align:center">${val?`<span class="plano-cell" style="background:${f.clair};color:${f.couleur}">${val}</span>`:`<span style="color:#D1D5DB">—</span>`}</td>`;
+        });
+        html += `</tr>`;
+      });
+    });
+    html += `</tbody><tfoot><tr class="plano-total-row"><td colspan="2">TOTAL</td>`;
+    ETAGES.forEach(e => {
+      const tot = FAMILLES.reduce((t,f)=>t+f.sousFamilles.reduce((tt,sf)=>tt+(sf.etages[e]||0),0),0);
+      html += `<td style="text-align:center">${tot||'—'}</td>`;
+    });
+    html += `</tr></tfoot></table></div>`;
+  }
+
+  document.getElementById('appContent').innerHTML = html;
+}
+
+function renderClient() {
+  const { familleId, sfNom } = state;
+  const famille = FAMILLES.find(f=>f.id===familleId);
+  const sf = famille?.sousFamilles.find(s=>s.nom===sfNom);
+
+  document.getElementById('headerTitle').textContent = 'Guide Produits';
+  document.getElementById('headerSub').textContent = 'Trouvez vos produits en rayon';
+
+  let html = '';
+
+  if (!familleId) {
+    html += `<div class="client-intro"><div class="client-intro-icon">🛒</div>
+      <div class="client-intro-title">Où trouver vos produits ?</div>
+      <div class="client-intro-sub">Sélectionnez une catégorie</div></div>`;
+    FAMILLES.forEach(f => {
+      html += `<div class="famille-card animate" onclick="goFamille(${f.id})">
+        <div class="famille-bar" style="background:${f.couleur}"></div>
+        <div class="famille-icon-wrap" style="background:${f.clair}">${f.icon}</div>
+        <div class="famille-body">
+          <div class="famille-name" style="color:${f.couleur}">${f.nom}</div>
+          <div class="famille-tags">${f.sousFamilles.map(sf=>`<span class="famille-tag">${sf.nom}</span>`).join('')}</div>
+        </div>
+        <div class="famille-chevron">›</div>
+      </div>`;
+    });
+  }
+
+  else if (familleId && !sfNom) {
+    html += breadcrumb([{label:'← Catégories',action:'goBack()'}], famille.nom);
+    famille.sousFamilles.forEach(sf => {
+      const actifs = etagesActifs(sf);
+      html += `<div class="sf-card animate" onclick="goSF('${sf.nom.replace(/'/g,"\\'")}')">
+        <div class="sf-icon" style="background:${famille.clair}">${famille.icon}</div>
+        <div style="flex:1"><div class="sf-name">${sf.nom}</div><div class="sf-sub">${actifs.length} étage${actifs.length!==1?'s':''} disponible${actifs.length!==1?'s':''}</div></div>
+        <div class="famille-chevron">›</div>
+      </div>`;
+    });
+  }
+
+  else if (familleId && sfNom && sf) {
+    const actifs = etagesActifs(sf);
+    const midIdx = Math.floor(actifs.length/2);
+    const primaire = actifs[midIdx] || actifs[0];
+    const max = maxFacing(sf);
+    html += breadcrumb([{label:'← Catégories',action:'goBack2()'},{label:famille.nom,action:`goFamille(${famille.id})`}], sf.nom);
+    html += `<div class="detail-hero animate" style="background:linear-gradient(135deg,${famille.couleur} 0%,${famille.couleur}cc 100%)">
+      <div class="detail-hero-icon">${famille.icon}</div>
+      <div><div class="detail-hero-name">${sf.nom}</div><div class="detail-hero-famille">${famille.nom}</div></div>
+    </div>`;
+    html += `<div class="section-title">Où trouver ce produit ?</div>`;
+    html += `<div class="shelf-visual animate">`;
+    [...ETAGES].reverse().forEach(e => {
+      const val = sf.etages[e];
+      const isPrimaire = e === primaire;
+      const pct = val ? Math.round((val/max)*100) : 0;
+      const rowClass = isPrimaire ? 'principal' : val ? 'disponible' : 'vide';
+      html += `<div class="shelf-row ${rowClass}" style="${isPrimaire?`border-left-color:${famille.couleur};background:${famille.clair}`:''}">
+        <div class="shelf-etage-name">${ETAGE_LABELS[e]}</div>
+        <div class="shelf-bar-wrap"><div class="shelf-bar-fill" style="width:${pct}%;background:${isPrimaire?famille.couleur:famille.couleur+'55'}"></div></div>
+        ${isPrimaire?`<span class="shelf-badge principal">✓ Principal</span>`:val?`<span class="shelf-badge dispo">Disponible</span>`:''}
+      </div>`;
+    });
+    html += `</div>`;
+    if (actifs.length > 0) {
+      html += `<div class="client-summary animate" style="background:${famille.clair}">
+        <div class="client-summary-num" style="color:${famille.couleur}">${actifs.length}</div>
+        <div class="client-summary-label">étage${actifs.length>1?'s':''} disponible${actifs.length>1?'s':''}</div>
+      </div>`;
+    }
+  }
+
+  document.getElementById('appContent').innerHTML = html;
+}
+
+function breadcrumb(steps, current) {
+  let html = `<div class="breadcrumb">`;
+  steps.forEach((s,i) => {
+    html += `<button class="bc-btn" onclick="${s.action}">${s.label}</button>`;
+    html += `<span class="bc-sep">/</span>`;
+  });
+  html += `<span class="bc-current">${current}</span></div>`;
+  return html;
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────────────
+function setMode(m) { state.mode=m; state.familleId=null; state.sfNom=null; state.vue='familles'; render(); }
+function navTo(v) { state.vue=v; state.familleId=null; state.sfNom=null; render(); }
+function goFamille(id) { state.familleId=id; state.sfNom=null; state.vue='familles'; document.getElementById('scrollArea').scrollTop=0; render(); }
+function goSF(nom) { state.sfNom=nom; document.getElementById('scrollArea').scrollTop=0; render(); }
+function goSFFromPlano(id,nom) { state.familleId=id; state.sfNom=nom; state.vue='familles'; document.getElementById('scrollArea').scrollTop=0; render(); }
+function goBack() { state.familleId=null; state.sfNom=null; render(); }
+function goBack2() { state.sfNom=null; render(); }
+
+// ── INIT ───────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
